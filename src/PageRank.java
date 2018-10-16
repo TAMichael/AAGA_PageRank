@@ -18,7 +18,7 @@ public class PageRank {
 	private static String fileResultat = "D:/Users/kciM/eclipse-workspace/AAGA_PageRank/files/pageRank_Alpha15_Ite20.txt";
 
 
-	private static BigInteger n;
+	private static int n;
 	private static List<Edge> edgeList;
 	private static double alpha = 0.15;
 	private static int nbIteration = 20;
@@ -28,7 +28,7 @@ public class PageRank {
 	private static double s;
 
 	private static Graph extractInfoFichier(String dirLinksFile2) throws IOException {
-		n = BigInteger.ZERO;
+		n = 0;
 		edgeList=new ArrayList<>();
 
 
@@ -36,22 +36,21 @@ public class PageRank {
 		try (Stream<String> stream = Files.lines(Paths.get(dirLinksFile))) {
 			stream.forEach(l -> {
 				String[] tab = l.split("\\s");
-				BigInteger src = new BigInteger(tab[0]);
-				BigInteger tgt = new BigInteger(tab[1]);
+				int src = Integer.parseInt(tab[0]);
+				int tgt = Integer.parseInt(tab[1]);
 				Edge e = new Edge(src, tgt);
 				edgeList.add(e);
-				n = (n.max(src)).max(tgt);
-
+				n = Math.max(Math.max(n, src), tgt);
 			});
 		}
 
 
-		BigInteger nbEdges = BigInteger.valueOf(edgeList.size());
+		int nbEdges = edgeList.size();
 
-		Map<BigInteger, Integer> degree = new HashMap<>();
+		Map<Integer, Integer> degree = new HashMap<>();
 
 		// On calcul les degrees sortant de chaque site
-		for (int i=0; i<nbEdges.intValueExact(); i++){
+		for (int i=0; i<nbEdges; i++){
 			Integer oldDegree = degree.get(edgeList.get(i).getSrc());
 			if(oldDegree == null) {
 				degree.put(edgeList.get(i).getSrc(), new Integer(1));
@@ -61,14 +60,14 @@ public class PageRank {
 		}
 
 
-
+		n++;
 		return new Graph(n, nbEdges, edgeList, degree);
 	}
 
 
 	public static ArrayList<Double> powerIte(Graph graph) throws IOException{
 
-		int nbNodes =graph.getN().intValueExact();
+		int nbNodes =graph.getN();
 
 		p1 = new ArrayList<>();
 		ArrayList<Double> p3;
@@ -84,17 +83,19 @@ public class PageRank {
 
 
 		for (int k=0; k<nbIteration; k++) {	
-			p2 = new ArrayList<>(Collections.nCopies(nbNodes, 0.0));
+/*			p2 = new ArrayList<>(Collections.nCopies(nbNodes, 0.0)); */
 
 			// Simule un deplacement aleatoire 
-			for(int i=0; i<graph.getNbEdges().intValueExact(); i++) {
+			for(int i=0; i<graph.getNbEdges(); i++) {
 
 				Edge currEdge = graph.getEdgeList().get(i);
-				BigInteger src = currEdge.getSrc();
-				BigInteger tgt = currEdge.getTgt();
+				int src = currEdge.getSrc();
+				int tgt = currEdge.getTgt();
 
-				double oldValue = p2.get(tgt.intValueExact());		
-				p2.set(tgt.intValueExact(), oldValue + (double)(p1.get(src.intValueExact())/(graph.getDegree().get(src))));
+/*				double oldValue = p2.get(tgt);		
+				p2.set(tgt, oldValue + (double)(p1.get(src)/(graph.getDegree().get(src)))); */
+				double oldValue = p1.get(tgt);		
+				p1.set(tgt, oldValue + (double)(p1.get(src)/(graph.getDegree().get(src))));
 				
 			}
 
@@ -102,20 +103,25 @@ public class PageRank {
 			s = 0;
 
 			for(int i=0; i<nbNodes; i++) {
-				double newValue = p2.get(i)*(1-alpha)+(alpha/nbNodes);
-				p2.set(i, newValue);
+/*				double newValue = p2.get(i)*(1-alpha)+(alpha/nbNodes);
+				p2.set(i, newValue);*/
+				
+				double newValue = p1.get(i)*(1-alpha)+(alpha/nbNodes);
+				p1.set(i, newValue);
+				
 				s += newValue;
 			}
 
 			double normalisationToAdd =(1-s)/nbNodes;
 
 			for(int i=0; i<nbNodes; i++) {
-				p2.set(i, p2.get(i)+normalisationToAdd);
+/*				p2.set(i, p2.get(i)+normalisationToAdd);*/
+				p1.set(i, p1.get(i)+normalisationToAdd);
 			}
 
-			p3=p1;
+/*			p3=p1;
 			p1=p2;
-			p2=p3;
+			p2=p3;*/
 			System.out.println("K : "+k);
 		}
 
@@ -128,8 +134,14 @@ public class PageRank {
 	public static void main(String[] args) {
 
 		try {
+			final long startTime = System.currentTimeMillis();
+
 			Graph graph = extractInfoFichier(args[1]);
 			System.out.println("N: "+graph.getN()+", nbEdges: "+graph.getNbEdges());
+			final long intTime = System.currentTimeMillis();
+			
+			System.out.println("Execution time after read file: " + (intTime - startTime)/1000 +" s");
+
 
 			List<Double> res = powerIte(graph);
 			
@@ -137,10 +149,15 @@ public class PageRank {
 			ff.createNewFile();
 			FileWriter ffw=new FileWriter(ff);
 
-			for(int i=0; i<graph.getN().intValueExact(); i++) {	
+			for(int i=0; i<graph.getN(); i++) {	
 				ffw.write(i+" "+res.get(i)+"\n"); 
 			}
 			ffw.close();
+			
+			final long endTime = System.currentTimeMillis();
+			
+			System.out.println("Total execution time: " + (endTime - startTime)/1000 +" s");
+
 
 		}catch (Exception e) {e.printStackTrace();}
 

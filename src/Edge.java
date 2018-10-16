@@ -1,25 +1,24 @@
-import java.math.BigInteger;
 
 public class Edge {
 	
-	private BigInteger src;
-	private BigInteger tgt;
+	private int src;
+	private int tgt;
 	
-	public Edge(BigInteger src, BigInteger tgt) {
+	public Edge(int src, int tgt) {
 		this.src=src;
 		this.tgt=tgt;
 	}
 	
-	public BigInteger getSrc() {
+	public int getSrc() {
 		return src;
 	}
-	public void setSrc(BigInteger src) {
+	public void setSrc(int src) {
 		this.src = src;
 	}
-	public BigInteger getTgt() {
+	public int getTgt() {
 		return tgt;
 	}
-	public void setTgt(BigInteger tgt) {
+	public void setTgt(int tgt) {
 		this.tgt = tgt;
 	}
 }
