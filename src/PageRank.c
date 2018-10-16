@@ -3,167 +3,177 @@
 #include <math.h>
 #include <strings.h>
 
-#define NLINKS 10000000 //maximum number of nonzero entries, will increase if needed
-#define NITER 30 //Number of power iterations to compute pagerank
-#define ALPHA 0.15 //restart probability of pagerank
+#define ALPHA 0.15
+#define NBITE 30
+#define ESTIMATION 10000000
 
-// graph datastructure:
 typedef struct {
-	unsigned long s;//source node
-	unsigned long t;//target node
+  long src;
+  long tgt;
 } edge;
 
-//sparse graphe structure
 typedef struct {
-	unsigned long n;//number of nodes
-	unsigned long e;//number of edges
-	edge *el;//edge list
-	unsigned long *dout;//outdegree
-} sparse;
+  long n;
+  long nbEdges;
+  edge *edgeList;
+  long *degree;
+} graph;
 
-//compute the maximum of three unsigned long
-unsigned long max3(unsigned long a,unsigned long b,unsigned long c){
-	a=(a>b) ? a : b;
-	return (a>c) ? a : c;
+long max(long a,long b,long c){
+  int m = a;
+  (m < b) && (m = b); //these are not conditional statements.
+  (m < c) && (m = c); //these are just boolean expressions.
+  return m;   
 }
 
-//reading the weighted sparsematrix
-sparse* readedgelist(char* edgelist){
-	unsigned long i, e1=NLINKS;
-	sparse *g=malloc(sizeof(sparse));
-	g->el=malloc(e1*sizeof(edge));
-	FILE *file;
-	g->n=0;
-	g->e=0;
-	file=fopen(edgelist,"r");
-	while (fscanf(file,"%lu %lu\n", &(g->el[g->e].s), &(g->el[g->e].t))==2) {
-		g->n=max3(g->n,g->el[g->e].s,g->el[g->e].t);
-		if (g->e++==e1) {
-			e1+=NLINKS;
-			g->el=realloc(g->el,e1*sizeof(edge));
-		}
-	}
-	fclose(file);
-	g->n++;
-	g->el=realloc(g->el,g->e*sizeof(edge));
+graph* extractInfoFichier(char* fichier){
+  graph *g=malloc(sizeof(graph));
+  long esti;
+  FILE *ficInput;
+  long src;
+  long tgt;
+  long i;
+  
+  
+  g->n=0;
+  g->nbEdges=0;
+  
+  esti=ESTIMATION;
+  g->edgeList=malloc(esti*sizeof(edge));
+  
+  ficInput=fopen(fichier,"r");
+  
+  if(ficInput == NULL){
+    return NULL;
+  }
 
-	//computing out-degrees
-	g->dout=calloc(g->n,sizeof(unsigned long));
-	for (i=0;i<g->e;i++){
-		g->dout[g->el[i].s]++;
-	}
+  while (fscanf(ficInput,"%ld %ld\n", &src, &tgt)==2) {
+    g->edgeList[g->nbEdges].src = src;
+    g->edgeList[g->nbEdges].tgt = tgt;
+    g->n=max(g->n,src,tgt);
+    g->nbEdges++;
+    
+    if (esti <= g->nbEdges) {
+      esti+=ESTIMATION;
+      g->edgeList=realloc(g->edgeList, esti*sizeof(edge));
+    }
+  }
+  g->nbEdges++;
 
-	return g;
+  fclose(ficInput);
+  
+  g->edgeList=realloc(g->edgeList, g->nbEdges*sizeof(edge)); //Pour éviter d'avoir de la mémoire non utilisée
+  g->degree=malloc(g->n*sizeof(long));
+  memset(g->degree, 0, sizeof(long)*g->n);
+
+  for (i=0;i<g->nbEdges;i++){
+    g->degree[g->edgeList[i].src]++;
+  }
+  return g;
 }
 
-//free the graph stucture
-void freegraph(sparse *g){
-	free(g->el);
-	free(g->dout);
-	free(g);
-}
+double* powerIte(graph* g){
+  long nbNodes = g->n;
+  double *p1,*p2,*p3;
+  double s;
+  long i, k;
+  edge currEdge;
+  double normalisationToAdd;
+  
+  p1=malloc(nbNodes*sizeof(double));
+  p2=malloc(nbNodes*sizeof(double));
+  
+  for (i=0; i<nbNodes; i++){
+    p1[i]=1.0/nbNodes;
+  }
+  
 
-//one step of random walk on the graph: initial probalities in v1 and result stored in v2
-void onestep(sparse* g, double* v1, double* v2){
-	unsigned long i;
-	memset(v2,0,sizeof(double)*g->n);
-	for (i=0;i<g->e;i++){
-		if (g->dout[g->el[i].s]>0){
-			v2[g->el[i].t]+=v1[g->el[i].s]/((double)(g->dout[g->el[i].s]));//
-		}
-	}
-}
+  for (k=0; k<NBITE; k++){
+    
+    memset(p2,0.0, sizeof(double)*nbNodes);
+    for (i=0; i<g->nbEdges; i++){
+      currEdge = g->edgeList[i];
 
-//returns an approximation of the pagerank (restar probability=a, number of iterations=k)
-double* pagerank(sparse* g, double a, unsigned char k){
-	double *v1,*v2,*v3;
-	double s;
-	unsigned char i;
-	unsigned long j,n=g->n;
+      if(g->degree[currEdge.src]!=0){
+	p2[currEdge.tgt]+=p1[currEdge.src]/((double)(g->degree[currEdge.src]));
+      }
+    }
+    
+    s=0.;
+    for (i=0; i<nbNodes; i++){
+      p2[i]= (p2[i]*(1.0-ALPHA)) + ALPHA/((double)nbNodes);
+      s+=p2[i];
+    }
+    
+    normalisationToAdd=(1.0-s)/((double)nbNodes);
+    
+    for (i=0; i<nbNodes; i++){
+      p2[i]+=normalisationToAdd;
+    }
+    
+    p3=p1;
+    p1=p2;
+    p2=p3;
 
-	v1=malloc(n*sizeof(double));
-
-	for (j=0;j<n;j++){//initialisation
-		v1[j]=1./((double)n);
-	}
-	v2=malloc(n*sizeof(double));
-
-	for (i=0;i<k;i++){
-		onestep(g,v1,v2);//one step of random walk stored in v2
-		s=0.;//to normalize
-		for (j=0;j<g->n;j++){
-			v2[j]=v2[j]*(1.-a)+a/((double)n);
-			s+=v2[j];
-		}
-		printf("%le\n",s);
-		s=(1-s)/((double)n);
-		for (j=0;j<n;j++){
-			v2[j]+=s;
-		}
-		v3=v2,v2=v1,v1=v3;
-	}
-
-	free(v2);
-	return v1;
-}
-
-void printres(FILE* file,unsigned long n, double* vect){
-	unsigned long i;
-	for (i=0;i<n;i++){
-		fprintf(file,"%lu %10le\n",i,vect[i]);
-	}
+  }
+  free(p2);
+  return p1;
 }
 
 int main(int argc,char** argv){
-	sparse* g;
-	double* pr;
-	FILE* file=fopen(argv[2],"w");
+  graph* g;
+  double* res;
+  FILE* ficRes;
+  time_t t1,t2;
+  long i;
 
-	time_t t1,t2;
+  t1=time(NULL);
 
-	t1=time(NULL);
+  g=extractInfoFichier(argv[1]);
 
-	printf("Reading edgelist from file %s\n",argv[1]);
+  printf("N: %ld, nbEdges: %ld\n",g->n, g->nbEdges);
 
-	g=readedgelist(argv[1]);
+  res=powerIte(g);
 
-	printf("Number of nodes = %lu\n",g->n);
-	printf("Number of edges = %lu\n",g->e);
+  ficRes =fopen(argv[2],"w");
+  
+  for (i=0; i<g->n; i++){
+    fprintf(ficRes,"%ld %lf\n",i,res[i]);
+  }
 
-	printf("Computing approximation of pagerank\n");
+  fclose(ficRes);
 
-	pr=pagerank(g,ALPHA,NITER);
+  /* file=fopen("outdegrees.txt","w"); */
+  /* unsigned long i; */
+  /* for (i=0;i<g->n;i++){ */
+  /*   fprintf(file,"%lu %lu\n",i,g->dout[i]); */
+  /* } */
+  /* fclose(file); */
 
-	printres(file,g->n,pr);
-	fclose(file);
-
-	//prints the outdegrees in text file named outdegrees.txt
-	file=fopen("outdegrees.txt","w");
-	unsigned long i;
-	for (i=0;i<g->n;i++){
-		fprintf(file,"%lu %lu\n",i,g->dout[i]);
-	}
-	fclose(file);
-
-	//prints the indegrees in text file named indegrees.txt
-	unsigned long *din=calloc(g->n,sizeof(unsigned long));
-	unsigned long j;
-	for (j=0;j<g->e;j++){
-		din[g->el[j].t]++;
-	}
-	file=fopen("indegrees.txt","w");
-	for (j=0;j<g->n;j++){
-		fprintf(file,"%lu %lu\n",j,din[j]);
-	}
-	fclose(file);
-	free(din);
+  /* //prints the indegrees in text file named indegrees.txt */
+  /* unsigned long *din=calloc(g->n,sizeof(unsigned long)); */
+  /* unsigned long j; */
+  /* for (j=0;j<g->e;j++){ */
+  /*   din[g->el[j].t]++; */
+  /* } */
+  /* file=fopen("indegrees.txt","w"); */
+  /* for (j=0;j<g->n;j++){ */
+  /*   fprintf(file,"%lu %lu\n",j,din[j]); */
+  /* } */
+  /* fclose(file); */
+  /* free(din); */
 
 
-	freegraph(g);
+  free(g->edgeList);
+  free(g->degree);
+  free(g);
 
-	t2=time(NULL);
 
-	printf("- Overall time = %ldh%ldm%lds\n",(t2-t1)/3600,((t2-t1)%3600)/60,((t2-t1)%60));
+  t2=time(NULL);
 
-	return 0;
+  free(res);
+
+  printf("- Overall time = %ldh%ldm%lds\n",(t2-t1)/3600,((t2-t1)%3600)/60,((t2-t1)%60));
+
+  return 0;
 }

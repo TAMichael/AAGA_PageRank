@@ -27,93 +27,6 @@ public class PageRank {
 
 	private static double s;
 
-
-	public static ArrayList<Double> powerIte(Graph graph) throws IOException{
-
-		int nbNodes =graph.getN().intValueExact();
-
-		p1 = new ArrayList<>();
-		ArrayList<Double> p3;
-
-		ArrayList<Integer> degree = new ArrayList<>();
-
-		// Initialisation de p1 (On a autant de chance de commencer sur n'importe quel site)
-		for(int i=0; i<nbNodes; i++) {
-			p1.add(1.0/nbNodes);
-		}
-
-		// Changer le fichier virer les noeuds dont rien de pointe sur et ne pointe sur rien
-
-
-		for (int k=0; k<nbIteration; k++) {	
-
-			// Simule un deplacement aleatoire 
-			for(int i=0; i<nbNodes; i++) {
-				p2 = new ArrayList<>(Collections.nCopies(nbNodes, 0.0));
-
-				for (int j=0; j<graph.getNbEdges().intValueExact(); j++){
-					Edge currEdge = graph.getEdgeList().get(j);
-					BigInteger src = currEdge.getSrc();
-					BigInteger tgt = currEdge.getTgt();
-
-					if (graph.getDegree().get(src)>0){
-						double oldValue = p2.get(tgt.intValueExact());		
-						p2.set(tgt.intValueExact(), oldValue + (double)(p1.get(src.intValueExact())/(graph.getDegree().get(src))));
-					}
-				}
-			}
-
-			// Normalisation		
-			s = 0;
-
-			for(int i=0; i<nbNodes; i++) {
-				double newValue = p2.get(i)*(1-alpha)+(alpha/nbNodes);
-				p2.set(i, newValue);
-				s += newValue;
-			}
-
-			double normalisationToAdd =(1-s)/nbNodes;
-
-			for(int i=0; i<nbNodes; i++) {
-				p1.set(i, p1.get(i)+normalisationToAdd);
-			}
-
-			p3=p1;
-			p1=p2;
-			p2=p3;
-			System.out.println("K : "+k);
-		}
-
-		return p1;
-
-	}
-
-
-
-	public static void main(String[] args) {
-
-		try {
-			Graph graph = extractInfoFichier(dirLinksFile);
-			System.out.println("N: "+graph.getN()+", nbEdges: "+graph.getNbEdges());
-
-			List<Double> res = powerIte(graph);
-			
-			File ff=new File(fileResultat); // définir l'arborescence
-			ff.createNewFile();
-			FileWriter ffw=new FileWriter(ff);
-
-			for(int i=0; i<graph.getN().intValueExact(); i++) {	
-				ffw.write(i+" "+res.get(i)+"\n"); 
-			}
-			ffw.close();
-
-		}catch (Exception e) {e.printStackTrace();}
-
-
-	}
-
-
-
 	private static Graph extractInfoFichier(String dirLinksFile2) throws IOException {
 		n = BigInteger.ZERO;
 		edgeList=new ArrayList<>();
@@ -151,5 +64,88 @@ public class PageRank {
 
 		return new Graph(n, nbEdges, edgeList, degree);
 	}
+
+
+	public static ArrayList<Double> powerIte(Graph graph) throws IOException{
+
+		int nbNodes =graph.getN().intValueExact();
+
+		p1 = new ArrayList<>();
+		ArrayList<Double> p3;
+
+		ArrayList<Integer> degree = new ArrayList<>();
+
+		// Initialisation de p1 (On a autant de chance de commencer sur n'importe quel site)
+		for(int i=0; i<nbNodes; i++) {
+			p1.add(1.0/nbNodes);
+		}
+
+		// Changer le fichier virer les noeuds dont rien de pointe sur et ne pointe sur rien
+
+
+		for (int k=0; k<nbIteration; k++) {	
+			p2 = new ArrayList<>(Collections.nCopies(nbNodes, 0.0));
+
+			// Simule un deplacement aleatoire 
+			for(int i=0; i<graph.getNbEdges().intValueExact(); i++) {
+
+				Edge currEdge = graph.getEdgeList().get(i);
+				BigInteger src = currEdge.getSrc();
+				BigInteger tgt = currEdge.getTgt();
+
+				double oldValue = p2.get(tgt.intValueExact());		
+				p2.set(tgt.intValueExact(), oldValue + (double)(p1.get(src.intValueExact())/(graph.getDegree().get(src))));
+				
+			}
+
+			// Normalisation		
+			s = 0;
+
+			for(int i=0; i<nbNodes; i++) {
+				double newValue = p2.get(i)*(1-alpha)+(alpha/nbNodes);
+				p2.set(i, newValue);
+				s += newValue;
+			}
+
+			double normalisationToAdd =(1-s)/nbNodes;
+
+			for(int i=0; i<nbNodes; i++) {
+				p2.set(i, p2.get(i)+normalisationToAdd);
+			}
+
+			p3=p1;
+			p1=p2;
+			p2=p3;
+			System.out.println("K : "+k);
+		}
+
+		return p1;
+
+	}
+
+
+
+	public static void main(String[] args) {
+
+		try {
+			Graph graph = extractInfoFichier(args[1]);
+			System.out.println("N: "+graph.getN()+", nbEdges: "+graph.getNbEdges());
+
+			List<Double> res = powerIte(graph);
+			
+			File ff=new File(args[2]); // définir l'arborescence
+			ff.createNewFile();
+			FileWriter ffw=new FileWriter(ff);
+
+			for(int i=0; i<graph.getN().intValueExact(); i++) {	
+				ffw.write(i+" "+res.get(i)+"\n"); 
+			}
+			ffw.close();
+
+		}catch (Exception e) {e.printStackTrace();}
+
+
+	}
+
 
 }
