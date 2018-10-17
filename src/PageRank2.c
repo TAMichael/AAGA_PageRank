@@ -4,7 +4,7 @@
 #include <strings.h>
 
 #define NLINKS 10000000 //maximum number of nonzero entries, will increase if needed
-#define NITER 30 //Number of power iterations to compute pagerank
+#define NITER 20 //Number of power iterations to compute pagerank
 #define ALPHA 0.15 //restart probability of pagerank
 
 // graph datastructure:
@@ -134,34 +134,34 @@ int main(int argc,char** argv){
 
 	pr=pagerank(g,ALPHA,NITER);
 
+
+	t2=time(NULL);
+
 	printres(file,g->n,pr);
 	fclose(file);
 
-	/* //prints the outdegrees in text file named outdegrees.txt */
-	/* file=fopen("outdegrees.txt","w"); */
-	/* unsigned long i; */
-	/* for (i=0;i<g->n;i++){ */
-	/* 	fprintf(file,"%lu %lu\n",i,g->dout[i]); */
-	/* } */
-	/* fclose(file); */
+	/*//prints the outdegrees in text file named outdegrees.txt
+	file=fopen("outdegrees.txt","w");
+	unsigned long i;
+	for (i=0;i<g->n;i++){
+		fprintf(file,"%lu %lu\n",i,g->dout[i]);
+	}
+	fclose(file);
 
-	/* //prints the indegrees in text file named indegrees.txt */
-	/* unsigned long *din=calloc(g->n,sizeof(unsigned long)); */
-	/* unsigned long j; */
-	/* for (j=0;j<g->e;j++){ */
-	/* 	din[g->el[j].t]++; */
-	/* } */
-	/* file=fopen("indegrees.txt","w"); */
-	/* for (j=0;j<g->n;j++){ */
-	/* 	fprintf(file,"%lu %lu\n",j,din[j]); */
-	/* } */
-	/* fclose(file); */
-	/* free(din); */
-
+	//prints the indegrees in text file named indegrees.txt
+	unsigned long *din=calloc(g->n,sizeof(unsigned long));
+	unsigned long j;
+	for (j=0;j<g->e;j++){
+		din[g->el[j].t]++;
+	}
+	file=fopen("indegrees.txt","w");
+	for (j=0;j<g->n;j++){
+		fprintf(file,"%lu %lu\n",j,din[j]);
+	}
+	fclose(file);
+	free(din);*/
 
 	freegraph(g);
-
-	t2=time(NULL);
 
 	printf("- Overall time = %ldh%ldm%lds\n",(t2-t1)/3600,((t2-t1)%3600)/60,((t2-t1)%60));
 

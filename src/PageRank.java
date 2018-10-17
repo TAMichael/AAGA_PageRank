@@ -33,7 +33,7 @@ public class PageRank {
 
 
 		// On récupère les informations crutiales, les edges ainsi que le nombre de sites
-		try (Stream<String> stream = Files.lines(Paths.get(dirLinksFile))) {
+		try (Stream<String> stream = Files.lines(Paths.get(dirLinksFile2))) {
 			stream.forEach(l -> {
 				String[] tab = l.split("\\s");
 				int src = Integer.parseInt(tab[0]);
@@ -83,7 +83,7 @@ public class PageRank {
 
 
 		for (int k=0; k<nbIteration; k++) {	
-/*			p2 = new ArrayList<>(Collections.nCopies(nbNodes, 0.0)); */
+			p2 = new ArrayList<>(Collections.nCopies(nbNodes, 0.0));
 
 			// Simule un deplacement aleatoire 
 			for(int i=0; i<graph.getNbEdges(); i++) {
@@ -92,10 +92,8 @@ public class PageRank {
 				int src = currEdge.getSrc();
 				int tgt = currEdge.getTgt();
 
-/*				double oldValue = p2.get(tgt);		
-				p2.set(tgt, oldValue + (double)(p1.get(src)/(graph.getDegree().get(src)))); */
-				double oldValue = p1.get(tgt);		
-				p1.set(tgt, oldValue + (double)(p1.get(src)/(graph.getDegree().get(src))));
+				double oldValue = p2.get(tgt);		
+				p2.set(tgt, oldValue + (double)(p1.get(src)/(graph.getDegree().get(src)))); 
 				
 			}
 
@@ -103,11 +101,8 @@ public class PageRank {
 			s = 0;
 
 			for(int i=0; i<nbNodes; i++) {
-/*				double newValue = p2.get(i)*(1-alpha)+(alpha/nbNodes);
-				p2.set(i, newValue);*/
-				
-				double newValue = p1.get(i)*(1-alpha)+(alpha/nbNodes);
-				p1.set(i, newValue);
+				double newValue = p2.get(i)*(1-alpha)+(alpha/nbNodes);
+				p2.set(i, newValue);
 				
 				s += newValue;
 			}
@@ -115,13 +110,12 @@ public class PageRank {
 			double normalisationToAdd =(1-s)/nbNodes;
 
 			for(int i=0; i<nbNodes; i++) {
-/*				p2.set(i, p2.get(i)+normalisationToAdd);*/
-				p1.set(i, p1.get(i)+normalisationToAdd);
+				p2.set(i, p2.get(i)+normalisationToAdd);
 			}
 
-/*			p3=p1;
+			p3=p1;
 			p1=p2;
-			p2=p3;*/
+			p2=p3;
 			System.out.println("K : "+k);
 		}
 
@@ -136,7 +130,7 @@ public class PageRank {
 		try {
 			final long startTime = System.currentTimeMillis();
 
-			Graph graph = extractInfoFichier(args[1]);
+			Graph graph = extractInfoFichier(args[0]);
 			System.out.println("N: "+graph.getN()+", nbEdges: "+graph.getNbEdges());
 			final long intTime = System.currentTimeMillis();
 			
@@ -145,7 +139,7 @@ public class PageRank {
 
 			List<Double> res = powerIte(graph);
 			
-			File ff=new File(args[2]); // définir l'arborescence
+			File ff=new File(args[1]); // définir l'arborescence
 			ff.createNewFile();
 			FileWriter ffw=new FileWriter(ff);
 

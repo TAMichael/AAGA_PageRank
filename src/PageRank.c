@@ -4,7 +4,7 @@
 #include <strings.h>
 
 #define ALPHA 0.15
-#define NBITE 30
+#define NBITE 20
 #define ESTIMATION 10000000
 
 typedef struct {
@@ -21,9 +21,9 @@ typedef struct {
 
 long max(long a,long b,long c){
   int m = a;
-  (m < b) && (m = b); //these are not conditional statements.
-  (m < c) && (m = c); //these are just boolean expressions.
-  return m;   
+    (m < b) && (m = b); //these are not conditional statements.
+    (m < c) && (m = c); //these are just boolean expressions.
+    return m;   
 }
 
 graph* extractInfoFichier(char* fichier){
@@ -58,11 +58,12 @@ graph* extractInfoFichier(char* fichier){
       g->edgeList=realloc(g->edgeList, esti*sizeof(edge));
     }
   }
-  g->nbEdges++;
+  g->n++;
 
   fclose(ficInput);
   
-  g->edgeList=realloc(g->edgeList, g->nbEdges*sizeof(edge)); //Pour éviter d'avoir de la mémoire non utilisée
+  //Pour éviter d'avoir de la mémoire non utilisée
+  g->edgeList=realloc(g->edgeList, g->nbEdges*sizeof(edge)); 
   g->degree=malloc(g->n*sizeof(long));
   memset(g->degree, 0, sizeof(long)*g->n);
 
@@ -72,108 +73,100 @@ graph* extractInfoFichier(char* fichier){
   return g;
 }
 
+void matVectProd(double *p1, double *p2, graph *g, long nbNodes){
+  edge currEdge;
+  long i;
+  memset(p2,0.0, sizeof(double)*nbNodes);
+  for (i=0; i<g->nbEdges; i++){
+    currEdge = g->edgeList[i];
+    if(g->degree[currEdge.src]!=0){
+       p2[currEdge.tgt]+=p1[currEdge.src]/((double)(g->degree[currEdge.src]));
+     }
+  
+  }
+
+}
+
+void normalisation(double* p2, long nbNodes){
+  double s= 0.0;
+  double toAdd=0.0;
+  int i;
+
+  for (i=0; i<nbNodes; i++){
+    p2[i]= (p2[i]*(1.0-ALPHA)) + ALPHA/((double)nbNodes);
+    s+=p2[i];
+  }
+
+  toAdd=(1.0-s)/((double)nbNodes);
+
+  for (i=0; i<nbNodes; i++){
+    p2[i]+=toAdd;
+  }
+}
+
 double* powerIte(graph* g){
   long nbNodes = g->n;
   double *p1,*p2,*p3;
   double s;
   long i, k;
-  edge currEdge;
-  double normalisationToAdd;
   
   p1=malloc(nbNodes*sizeof(double));
   p2=malloc(nbNodes*sizeof(double));
-  
+    
   for (i=0; i<nbNodes; i++){
     p1[i]=1.0/nbNodes;
   }
-  
+
 
   for (k=0; k<NBITE; k++){
-    
-    memset(p2,0.0, sizeof(double)*nbNodes);
-    for (i=0; i<g->nbEdges; i++){
-      currEdge = g->edgeList[i];
 
-      if(g->degree[currEdge.src]!=0){
-	p2[currEdge.tgt]+=p1[currEdge.src]/((double)(g->degree[currEdge.src]));
-      }
-    }
-    
-    s=0.;
-    for (i=0; i<nbNodes; i++){
-      p2[i]= (p2[i]*(1.0-ALPHA)) + ALPHA/((double)nbNodes);
-      s+=p2[i];
-    }
-    
-    normalisationToAdd=(1.0-s)/((double)nbNodes);
-    
-    for (i=0; i<nbNodes; i++){
-      p2[i]+=normalisationToAdd;
-    }
-    
-    p3=p1;
-    p1=p2;
-    p2=p3;
+   matVectProd(p1, p2, g, nbNodes);
+   normalisation(p2, nbNodes);
 
-  }
-  free(p2);
-  return p1;
+   p3=p1;
+   p1=p2;
+   p2=p3;
+
+ }
+ free(p2);
+ return p1;
 }
 
 int main(int argc,char** argv){
-  graph* g;
-  double* res;
-  FILE* ficRes;
-  time_t t1,t2;
-  long i;
+graph* g;
+double* res;
+FILE* ficRes;
+time_t t1,t2;
+long i;
 
-  t1=time(NULL);
+t1=time(NULL);
 
-  g=extractInfoFichier(argv[1]);
+g=extractInfoFichier(argv[1]);
 
-  printf("N: %ld, nbEdges: %ld\n",g->n, g->nbEdges);
+printf("N: %ld, nbEdges: %ld\n",g->n, g->nbEdges);
 
-  res=powerIte(g);
+res=powerIte(g);
 
-  ficRes =fopen(argv[2],"w");
-  
-  for (i=0; i<g->n; i++){
-    fprintf(ficRes,"%ld %lf\n",i,res[i]);
-  }
+t2=time(NULL);
 
-  fclose(ficRes);
+printf("Temps = %lds\n",(t2-t1));
 
-  /* file=fopen("outdegrees.txt","w"); */
-  /* unsigned long i; */
-  /* for (i=0;i<g->n;i++){ */
-  /*   fprintf(file,"%lu %lu\n",i,g->dout[i]); */
-  /* } */
-  /* fclose(file); */
+printf("Debut stockage du résultat\n");
+ficRes =fopen(argv[2],"w");
 
-  /* //prints the indegrees in text file named indegrees.txt */
-  /* unsigned long *din=calloc(g->n,sizeof(unsigned long)); */
-  /* unsigned long j; */
-  /* for (j=0;j<g->e;j++){ */
-  /*   din[g->el[j].t]++; */
-  /* } */
-  /* file=fopen("indegrees.txt","w"); */
-  /* for (j=0;j<g->n;j++){ */
-  /*   fprintf(file,"%lu %lu\n",j,din[j]); */
-  /* } */
-  /* fclose(file); */
-  /* free(din); */
+for (i=0; i<g->n; i++){
+  //On considere que cela vaut 0 dès que les 7 premiers decimaux sont des 0
+  if(res[i] > 0.00000009){ 
+    fprintf(ficRes,"%ld %.8lf\n",i,res[i]);
+  } 
+}
 
+free(g->edgeList);
+free(g->degree);
+free(g);
+fclose(ficRes);
 
-  free(g->edgeList);
-  free(g->degree);
-  free(g);
+free(res);
 
-
-  t2=time(NULL);
-
-  free(res);
-
-  printf("- Overall time = %ldh%ldm%lds\n",(t2-t1)/3600,((t2-t1)%3600)/60,((t2-t1)%60));
-
-  return 0;
+return 0;
 }
