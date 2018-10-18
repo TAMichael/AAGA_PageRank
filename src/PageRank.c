@@ -3,7 +3,7 @@
 #include <math.h>
 #include <strings.h>
 
-#define ALPHA 0.15
+#define ALPHA 0.9
 #define NBITE 20
 #define ESTIMATION 10000000
 
@@ -21,9 +21,9 @@ typedef struct {
 
 long max(long a,long b,long c){
   int m = a;
-    (m < b) && (m = b); //these are not conditional statements.
-    (m < c) && (m = c); //these are just boolean expressions.
-    return m;   
+  (m < b) && (m = b); //these are not conditional statements.
+  (m < c) && (m = c); //these are just boolean expressions.
+  return m;   
 }
 
 graph* extractInfoFichier(char* fichier){
@@ -80,8 +80,8 @@ void matVectProd(double *p1, double *p2, graph *g, long nbNodes){
   for (i=0; i<g->nbEdges; i++){
     currEdge = g->edgeList[i];
     if(g->degree[currEdge.src]!=0){
-       p2[currEdge.tgt]+=p1[currEdge.src]/((double)(g->degree[currEdge.src]));
-     }
+      p2[currEdge.tgt]+=p1[currEdge.src]/((double)(g->degree[currEdge.src]));
+    }
   
   }
 
@@ -120,53 +120,76 @@ double* powerIte(graph* g){
 
   for (k=0; k<NBITE; k++){
 
-   matVectProd(p1, p2, g, nbNodes);
-   normalisation(p2, nbNodes);
+    matVectProd(p1, p2, g, nbNodes);
+    normalisation(p2, nbNodes);
 
-   p3=p1;
-   p1=p2;
-   p2=p3;
+    p3=p1;
+    p1=p2;
+    p2=p3;
 
- }
- free(p2);
- return p1;
+  }
+  free(p2);
+  return p1;
 }
 
 int main(int argc,char** argv){
-graph* g;
-double* res;
-FILE* ficRes;
-time_t t1,t2;
-long i;
+  graph* g;
+  double* res;
+  FILE* ficRes;
+  FILE* fileDIn;
+  FILE* fileDOut;
 
-t1=time(NULL);
+  time_t t1,t2;
+  long i;
 
-g=extractInfoFichier(argv[1]);
+  t1=time(NULL);
 
-printf("N: %ld, nbEdges: %ld\n",g->n, g->nbEdges);
+  g=extractInfoFichier(argv[1]);
 
-res=powerIte(g);
+  printf("N: %ld, nbEdges: %ld\n",g->n, g->nbEdges);
 
-t2=time(NULL);
+  res=powerIte(g);
 
-printf("Temps = %lds\n",(t2-t1));
+  t2=time(NULL);
 
-printf("Debut stockage du résultat\n");
-ficRes =fopen(argv[2],"w");
+  printf("Temps = %lds\n",(t2-t1));
 
-for (i=0; i<g->n; i++){
-  //On considere que cela vaut 0 dès que les 7 premiers decimaux sont des 0
-  if(res[i] > 0.00000009){ 
-    fprintf(ficRes,"%ld %.8lf\n",i,res[i]);
-  } 
-}
+  printf("Debut stockage du résultat\n");
+  ficRes =fopen(argv[2],"w");
 
-free(g->edgeList);
-free(g->degree);
-free(g);
-fclose(ficRes);
+  for (i=0; i<g->n; i++){
+    //On considere que cela vaut 0 dès que les 7 premiers decimaux sont des 0
+    if(res[i] > 0.00000009){ 
+      fprintf(ficRes,"%ld %.8lf\n",i,res[i]);
+    } 
+  }
 
-free(res);
+  /*
+  fileDIn=fopen(argv[3],"w");
+  for (i=0;i<g->n;i++){
+    fprintf(fileDIn,"%ld %ld\n",i,g->degree[i]);
+  }
+  fclose(fileDIn);
 
-return 0;
+  long *din=calloc(g->n,sizeof(long));
+  long j;
+  for (j=0;j<g->nbEdges;j++){
+    din[g->edgeList[j].tgt]++;
+  }
+	
+  fileDOut=fopen(argv[4],"w");
+  for (j=0;j<g->n;j++){
+    fprintf(fileDOut,"%ld %ld\n",j,din[j]);
+  }
+  fclose(fileDOut);
+  free(din);*/
+
+  free(g->edgeList);
+  free(g->degree);
+  free(g);
+  fclose(ficRes);
+
+  free(res);
+
+  return 0;
 }
